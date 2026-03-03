@@ -440,7 +440,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -451,7 +451,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -526,7 +526,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -537,7 +537,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -561,11 +561,82 @@
 
 
 
-<h1 id="no3">Лабораторная работа №3</h1>
+<h1 id="no3">Лабораторная работа №3 — Библиотека парсинга аргументов</h1>
 <h2 id="_1">Цель</h2>
+<p>Спроектировать и реализовать библиотеку для парсинга аргументов командной строки без использования контейнеров, строк, шаблонов и классов.</p>
 <h2 id="_2">Задание</h2>
-<h2 id="_3">Ход работы</h2>
-<h2 id="_4">Команды / код</h2>
+<ul>
+<li>Реализовать библиотеку <code>argparser</code>.</li>
+<li>Поддержать следующие типы аргументов:</li>
+<li>целые числа</li>
+<li>вещественные числа</li>
+<li>флаги</li>
+<li>строки (фиксированной максимальной длины)</li>
+<li>Обеспечить прохождение всех тестов GoogleTest.</li>
+<li>Реализовать динамическое выделение памяти.</li>
+<li>Избежать дублирования кода.</li>
+</ul>
+<h2 id="_3">Код</h2>
+<pre><code class="language-cpp">// Основная структура аргумента
+
+enum ValueKind { kValueInt, kValueFloat, kValueString, kValueFlag };
+
+struct ArgSpec {
+    char* short_opt;
+    char* long_opt;
+    void* target;
+    ValueKind kind;
+    NargsType nargs_mode;
+    int appearances;
+};
+
+// Структура парсера
+
+struct ArgumentParserStruct {
+    char* prog_name;
+    ArgSpec* specs;
+    int spec_count;
+    int spec_capacity;
+};
+
+// Регистрация аргумента (динамическое расширение массива)
+
+static void EnsureSpecCapacity(ArgumentParser parser) {
+    if (parser-&gt;spec_count &lt; parser-&gt;spec_capacity) return;
+
+    int new_cap = (parser-&gt;spec_capacity == 0 ? 8 : parser-&gt;spec_capacity * 2);
+    ArgSpec* tmp = new ArgSpec[new_cap];
+    std::memcpy(tmp, parser-&gt;specs, sizeof(ArgSpec) * parser-&gt;spec_count);
+    delete[] parser-&gt;specs;
+
+    parser-&gt;specs = tmp;
+    parser-&gt;spec_capacity = new_cap;
+}
+
+// Основной цикл парсинга
+
+bool Parse(ArgumentParser parser, int argc, const char* argv[]) {
+    for (int i = 1; i &lt; argc; ++i) {
+        const char* tok = argv[i];
+
+        if (tok[0] == '-') {
+            int idx = FindSpecByOption(parser, tok);
+            if (idx &lt; 0) return false;
+
+            ArgSpec&amp; spec = parser-&gt;specs[idx];
+
+            if (spec.kind == kValueFlag) {
+                *static_cast&lt;bool*&gt;(spec.target) = true;
+                spec.appearances++;
+            }
+            // обработка чисел, строк и повторяющихся значений
+        }
+    }
+    return true;
+}
+</code></pre>
+<h2 id="_4">Вывод</h2>
+<p>В ходе работы реализована библиотека для парсинга аргументов командной строки с поддержкой различных типов данных и повторяющихся параметров.</p>
 
 
 
