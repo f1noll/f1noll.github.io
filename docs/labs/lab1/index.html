@@ -386,7 +386,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -397,7 +397,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -528,7 +528,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -539,7 +539,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -563,11 +563,183 @@
 
 
 
-<h1 id="no1">Лабораторная работа №1</h1>
+<h1 id="no1">Лабораторная работа №1 — Шаблонизатор</h1>
 <h2 id="_1">Цель</h2>
+<p>Разработать консольную утилиту на C++, которая генерирует текстовый документ на основе шаблона с метками <code>{{ variable_name }}</code> и файла данных формата <code>KEY=VALUE</code>.</p>
 <h2 id="_2">Задание</h2>
-<h2 id="_3">Ход работы</h2>
-<h2 id="_4">Команды / код</h2>
+<ul>
+<li>Реализовать поддержку аргументов командной строки:</li>
+<li><code>-t / --template</code> — путь к файлу шаблона (обязательно)</li>
+<li><code>-d / --data</code> — путь к файлу данных (обязательно)</li>
+<li><code>-o / --output</code> — путь к выходному файлу (опционально)</li>
+<li>Заменять все метки в шаблоне на соответствующие значения.</li>
+<li>Обрабатывать ошибки и возвращать заданные коды завершения.</li>
+</ul>
+<h2 id="_3">Код</h2>
+<pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;cstring&gt;
+
+const int kMaxKey = 100;
+const int kMaxVal = 100;
+const int kMaxPairs = 1024;
+const int kMaxBuf = 65536;
+
+struct KeyValue {
+    char key[kMaxKey];
+    char val[kMaxVal];
+};
+
+bool IsValidIdentifier(const char* str) {
+    for (int i = 0; str[i] != '\0'; ++i) {
+        char c = str[i];
+        bool is_letter = (c &gt;= 'a' &amp;&amp; c &lt;= 'z') || (c &gt;= 'A' &amp;&amp; c &lt;= 'Z');
+        bool is_digit = (c &gt;= '0' &amp;&amp; c &lt;= '9');
+        if (!(is_letter || is_digit || c == '_')) {
+            return false;
+        }
+    }
+    return true;
+}
+
+int LoadData(const char* path, KeyValue* pairs) {
+    std::ifstream in(path);
+    if (!in.is_open()) return -1;
+
+    char line[kMaxKey + kMaxVal + 10];
+    int count = 0;
+
+    while (in.getline(line, sizeof(line))) {
+        if (line[0] == '#' || (line[0] == '/' &amp;&amp; line[1] == '/')) continue;
+
+        char* eq = std::strchr(line, '=');
+        if (!eq) continue;
+
+        *eq = '\0';
+        char* key = line;
+        char* val = eq + 1;
+
+        while (*key == ' ') key++;
+        char* end_key = key + std::strlen(key) - 1;
+        while (end_key &gt;= key &amp;&amp; *end_key == ' ') *end_key-- = '\0';
+
+        while (*val == ' ') val++;
+        char* end_val = val + std::strlen(val) - 1;
+        while (end_val &gt;= val &amp;&amp; *end_val == ' ') *end_val-- = '\0';
+
+        if (!IsValidIdentifier(key) || !IsValidIdentifier(val)) continue;
+
+        bool found = false;
+        for (int i = 0; i &lt; count; ++i) {
+            if (std::strcmp(pairs[i].key, key) == 0) {
+                std::strncpy(pairs[i].val, val, kMaxVal);
+                pairs[i].val[kMaxVal - 1] = '\0';
+                found = true;
+                break;
+            }
+        }
+
+        if (!found &amp;&amp; count &lt; kMaxPairs) {
+            std::strncpy(pairs[count].key, key, kMaxKey);
+            pairs[count].key[kMaxKey - 1] = '\0';
+            std::strncpy(pairs[count].val, val, kMaxVal);
+            pairs[count].val[kMaxVal - 1] = '\0';
+            count++;
+        }
+    }
+    return count;
+}
+
+int ProcessTemplate(const char* template_path, const KeyValue* pairs, int pair_count, std::ostream&amp; out) {
+    std::ifstream in(template_path);
+    if (!in.is_open()) return 3;
+
+    char c;
+    while (in.get(c)) {
+        if (c == '{') {
+            char next;
+            if (!in.get(next)) return 4;
+
+            if (next == '{') {
+                char var[kMaxKey];
+                int idx = 0;
+                bool closed = false;
+
+                while (in.get(c)) {
+                    if (c == '}' &amp;&amp; in.peek() == '}') {
+                        in.get();
+                        var[idx] = '\0';
+                        closed = true;
+                        break;
+                    }
+                    if (c != ' ') {
+                        if (idx &lt; kMaxKey - 1) var[idx++] = c;
+                    }
+                }
+
+                if (!closed) return 4;
+
+                bool found = false;
+                for (int i = 0; i &lt; pair_count; ++i) {
+                    if (std::strcmp(pairs[i].key, var) == 0) {
+                        out &lt;&lt; pairs[i].val;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) return 1;
+            } else {
+                out &lt;&lt; '{' &lt;&lt; next;
+            }
+        } else {
+            out &lt;&lt; c;
+        }
+    }
+    return 0;
+}
+
+int main(int argc, char* argv[]) {
+    const char* template_file = nullptr;
+    const char* data_file = nullptr;
+    const char* output_file = nullptr;
+
+    for (int i = 1; i &lt; argc; ++i) {
+        if (std::strcmp(argv[i], &quot;-t&quot;) == 0 &amp;&amp; i + 1 &lt; argc) {
+            template_file = argv[++i];
+        } else if (std::strncmp(argv[i], &quot;--template=&quot;, 11) == 0) {
+            template_file = argv[i] + 11;
+        } else if (std::strcmp(argv[i], &quot;-d&quot;) == 0 &amp;&amp; i + 1 &lt; argc) {
+            data_file = argv[++i];
+        } else if (std::strncmp(argv[i], &quot;--data=&quot;, 7) == 0) {
+            data_file = argv[i] + 7;
+        } else if (std::strcmp(argv[i], &quot;-o&quot;) == 0 &amp;&amp; i + 1 &lt; argc) {
+            output_file = argv[++i];
+        } else if (std::strncmp(argv[i], &quot;--output=&quot;, 9) == 0) {
+            output_file = argv[i] + 9;
+        }
+    }
+
+    if (!template_file || !data_file) return 2;
+
+    KeyValue pairs[kMaxPairs];
+    int pair_count = LoadData(data_file, pairs);
+    if (pair_count &lt; 0) return 3;
+
+    int result;
+    if (output_file) {
+        std::ofstream out(output_file);
+        if (!out.is_open()) return 3;
+        result = ProcessTemplate(template_file, pairs, pair_count, out);
+    } else {
+        result = ProcessTemplate(template_file, pairs, pair_count, std::cout);
+    }
+
+    return result;
+}
+</code></pre>
+<h2 id="_4">Вывод</h2>
+<p>В ходе работы реализована утилита генерации текста по шаблону с поддержкой аргументов командной строки и обработкой ошибок. Закреплены навыки работы с текстовыми файлами и разбором входных данных в C++.</p>
 
 
 
