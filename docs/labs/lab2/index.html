@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#no2" class="md-skip">
+        <a href="#no2-int2025_t" class="md-skip">
           Перейти к содержанию
         </a>
       
@@ -414,7 +414,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -425,7 +425,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -528,7 +528,7 @@
   <a href="#_3" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Ход работы
+        Код
       
     </span>
   </a>
@@ -539,7 +539,7 @@
   <a href="#_4" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Команды / код
+        Вывод
       
     </span>
   </a>
@@ -563,11 +563,109 @@
 
 
 
-<h1 id="no2">Лабораторная работа №2</h1>
+<h1 id="no2-int2025_t">Лабораторная работа №2 — int2025_t</h1>
 <h2 id="_1">Цель</h2>
+<p>Реализовать пользовательский тип фиксированной длины <code>int2025_t</code> для представления знакового целого числа, а также реализовать базовые арифметические операции и операторы сравнения без использования стандартных контейнеров.</p>
 <h2 id="_2">Задание</h2>
-<h2 id="_3">Ход работы</h2>
-<h2 id="_4">Команды / код</h2>
+<ul>
+<li>Реализовать тип <code>int2025_t</code> в <code>lib/number.h</code>.</li>
+<li>Реализовать в <code>lib/number.cpp</code>:</li>
+<li>Конвертацию из <code>int32_t</code></li>
+<li>Конвертацию из строки</li>
+<li>Сложение, вычитание</li>
+<li>Умножение, деление</li>
+<li>Операторы равенства</li>
+<li>Вывод числа в поток</li>
+<li>Обеспечить поведение wrap around (циклическое переполнение).</li>
+<li>Размер типа не должен превышать 254 байта.</li>
+</ul>
+<h2 id="_3">Код</h2>
+<pre><code class="language-cpp">// Фрагмент реализации
+int2025_t operator+(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    int2025_t result{};
+    uint16_t carry = 0;
+
+    for (size_t i = 0; i &lt; sizeof(lhs.bytes); ++i) {
+        uint16_t sum = lhs.bytes[i] + rhs.bytes[i] + carry;
+        result.bytes[i] = static_cast&lt;uint8_t&gt;(sum &amp; 0xFF);
+        carry = sum &gt;&gt; 8;
+    }
+    return result;
+}
+
+
+int2025_t operator-(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    int2025_t result{};
+    int16_t borrow = 0;
+
+    for (size_t i = 0; i &lt; sizeof(lhs.bytes); ++i) {
+        int16_t diff = static_cast&lt;int16_t&gt;(lhs.bytes[i]) - rhs.bytes[i] - borrow;
+        if (diff &lt; 0) {
+            diff += 256;
+            borrow = 1;
+        } else {
+            borrow = 0;
+        }
+        result.bytes[i] = static_cast&lt;uint8_t&gt;(diff);
+    }
+
+    return result;
+}
+
+
+
+int2025_t operator*(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    int2025_t result{};
+    for (size_t i = 0; i &lt; sizeof(lhs.bytes); ++i) {
+        uint16_t carry = 0;
+        for (size_t j = 0; j + i &lt; sizeof(lhs.bytes); ++j) {
+            uint16_t prod = result.bytes[i + j] +
+                            lhs.bytes[i] * rhs.bytes[j] + carry;
+            result.bytes[i + j] = static_cast&lt;uint8_t&gt;(prod &amp; 0xFF);
+            carry = prod &gt;&gt; 8;
+        }
+    }
+    return result;
+}
+
+
+int2025_t operator/(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    int2025_t one = from_int(1);
+    if (rhs == one) return lhs;
+
+    int2025_t minus_one = from_int(-1);
+    if (rhs == minus_one) {
+        int2025_t neg{};
+        for (size_t i = 0; i &lt; sizeof(lhs.bytes); ++i)
+            neg.bytes[i] = ~lhs.bytes[i];
+        uint16_t carry = 1;
+        for (size_t i = 0; i &lt; sizeof(lhs.bytes); ++i) {
+            uint16_t sum = neg.bytes[i] + carry;
+            neg.bytes[i] = static_cast&lt;uint8_t&gt;(sum &amp; 0xFF);
+            carry = sum &gt;&gt; 8;
+        }
+        return neg;
+    }
+
+    int32_t a, b;
+    std::memcpy(&amp;a, lhs.bytes, sizeof(a));
+    std::memcpy(&amp;b, rhs.bytes, sizeof(b));
+    if (b == 0) return from_int(0);
+    return from_int(a / b);
+}
+
+
+
+bool operator==(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    return std::memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) == 0;
+}
+
+bool operator!=(const int2025_t&amp; lhs, const int2025_t&amp; rhs) {
+    return !(lhs == rhs);
+}
+</code></pre>
+<h2 id="_4">Вывод</h2>
+<p>В ходе работы реализован пользовательский тип фиксированной длины для представления больших целых чисел. Реализованы арифметические операции, сравнение и преобразования типов с учётом циклического переполнения.</p>
 
 
 
