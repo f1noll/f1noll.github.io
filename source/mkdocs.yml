@@ -1,1 +1,14 @@
-site_name: My Docs
+site_name: Учебные прооекты
+site_url: https://f1noll.github.io/
+
+theme:
+  name: material
+  language: ru
+
+nav:
+  - Главная: index.md
+  - Об авторе: me.md
+  - Лабораторные работы:
+      - Лабораторная 1: labs/lab1.md
+      - Лабораторная 2: labs/lab2.md
+      - Лабораторная 3: labs/lab3.md
