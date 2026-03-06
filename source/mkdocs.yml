@@ -8,6 +8,7 @@ theme:
 nav:
   - Главная: index.md
   - Об авторе: me.md
+  - LR-2: LR-2/index.md
   - Лабораторные работы:
       - Лабораторная 1: labs/lab1.md
       - Лабораторная 2: labs/lab2.md
