@@ -1,9 +1,12 @@
-site_name: Учебные прооекты
+site_name: Учебные проекты
 site_url: https://f1noll.github.io/
 
 theme:
   name: material
   language: ru
+
+docs_dir: docs
+site_dir: ../docs
 
 nav:
   - Главная: index.md

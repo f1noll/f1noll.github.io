@@ -1,0 +1,19 @@
+on:
+  push:
+    - workflows: [build-site]
+      filter:
+        branches: [main]
+
+workflows:
+  build-site:
+    tasks:
+      - build
+
+tasks:
+  - name: build
+    cubes:
+      - name: mkdocs-build
+        image: python:3.11
+        script:
+          - python -m pip install -r requirements.txt
+          - python -m mkdocs build -f source/mkdocs.yml
